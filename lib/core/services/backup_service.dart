@@ -10,6 +10,7 @@ import '../../data/database/app_database.dart';
 import '../../data/models/category.dart';
 import '../../data/models/completion_record.dart';
 import '../../data/models/reminder.dart';
+import '../../data/models/subscription.dart';
 
 enum ImportStrategy { merge, replace }
 
@@ -19,6 +20,7 @@ class BackupValidationResult {
   final int reminderCount;
   final int categoryCount;
   final int completionCount;
+  final int subscriptionCount;
   final Map<String, dynamic>? parsedJson;
 
   const BackupValidationResult({
@@ -27,6 +29,7 @@ class BackupValidationResult {
     this.reminderCount = 0,
     this.categoryCount = 0,
     this.completionCount = 0,
+    this.subscriptionCount = 0,
     this.parsedJson,
   });
 }
@@ -58,7 +61,7 @@ class BackupService {
       }
 
       final schemaVersion = decoded['schemaVersion'] as int?;
-      if (schemaVersion == null || schemaVersion > 1) {
+      if (schemaVersion == null || schemaVersion > 2) {
         return const BackupValidationResult(
           isValid: false,
           errorMessage: 'This backup is from a newer version of Life Reminder.',
@@ -78,11 +81,15 @@ class BackupService {
         );
       }
 
+      // Subscriptions were introduced in schema v2; older backups omit them.
+      final subscriptionsJson = (decoded['subscriptions'] as List?) ?? const [];
+
       return BackupValidationResult(
         isValid: true,
         reminderCount: remindersJson.length,
         categoryCount: categoriesJson.length,
         completionCount: completionRecordsJson.length,
+        subscriptionCount: subscriptionsJson.length,
         parsedJson: decoded,
       );
     } catch (e) {
@@ -99,6 +106,7 @@ class BackupService {
     final categoriesRaw = await db.query('categories');
     final remindersRaw = await db.query('reminders');
     final completionsRaw = await db.query('completion_records');
+    final subscriptionsRaw = await db.query('subscriptions');
 
     final categories = categoriesRaw
         .map((m) => Category.fromMap(m).toJson())
@@ -109,6 +117,9 @@ class BackupService {
     final completions = completionsRaw
         .map((m) => CompletionRecord.fromMap(m).toJson())
         .toList();
+    final subscriptions = subscriptionsRaw
+        .map((m) => Subscription.fromMap(m).toJson())
+        .toList();
 
     final now = DateTime.now();
     final exportedAtStr = now.toUtc().toIso8601String();
@@ -117,16 +128,18 @@ class BackupService {
 
     final backupData = {
       'app': 'life_reminder',
-      'schemaVersion': 1,
+      'schemaVersion': 2,
       'exportedAt': exportedAtStr,
       'counts': {
         'reminders': reminders.length,
         'categories': categories.length,
         'completions': completions.length,
+        'subscriptions': subscriptions.length,
       },
       'categories': categories,
       'reminders': reminders,
       'completionRecords': completions,
+      'subscriptions': subscriptions,
     };
 
     final jsonString = const JsonEncoder.withIndent('  ').convert(backupData);
@@ -166,11 +179,16 @@ class BackupService {
         .cast<Map<String, dynamic>>();
     final completionsJson = (backupData['completionRecords'] as List)
         .cast<Map<String, dynamic>>();
+    // Optional for v1 backups.
+    final subscriptionsJson =
+        ((backupData['subscriptions'] as List?) ?? const [])
+            .cast<Map<String, dynamic>>();
 
     await db.transaction((txn) async {
       if (strategy == ImportStrategy.replace) {
         await txn.delete('completion_records');
         await txn.delete('reminders');
+        await txn.delete('subscriptions');
         await txn.delete('categories', where: 'is_custom = 1');
       }
 
@@ -243,6 +261,20 @@ class BackupService {
               conflictAlgorithm: ConflictAlgorithm.replace,
             );
           }
+        } catch (_) {
+          // Skip invalid record
+        }
+      }
+
+      // Process imported subscriptions
+      for (final subMap in subscriptionsJson) {
+        try {
+          final sub = Subscription.fromJson(subMap);
+          await txn.insert(
+            'subscriptions',
+            sub.toMap(),
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
         } catch (_) {
           // Skip invalid record
         }

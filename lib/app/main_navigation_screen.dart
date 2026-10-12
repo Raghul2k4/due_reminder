@@ -3,6 +3,7 @@ import '../features/calendar/screens/calendar_screen.dart';
 import '../features/home/screens/home_screen.dart';
 import '../features/search/screens/search_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
+import '../features/subscriptions/screens/subscriptions_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -26,6 +27,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       HomeScreen(onNavigateToTab: _onTabTapped),
       const CalendarScreen(),
       const SearchScreen(),
+      const SubscriptionsScreen(),
       const SettingsScreen(),
     ];
 
@@ -52,6 +54,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             icon: Icon(Icons.search_outlined),
             selectedIcon: Icon(Icons.search),
             label: 'Search',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.autorenew_outlined),
+            selectedIcon: Icon(Icons.autorenew),
+            label: 'Subscriptions',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

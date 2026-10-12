@@ -4,13 +4,17 @@ import 'package:provider/provider.dart';
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/reminder_provider.dart';
 import '../../../app/providers/settings_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../app/theme/app_colors.dart';
 import '../../../core/utils/recurrence.dart';
 import '../../../data/models/category.dart';
 import '../../../data/models/reminder.dart';
+import '../../../data/models/subscription.dart';
+import '../../../data/models/subscription_enums.dart';
 import '../../reminders/screens/add_edit_reminder_screen.dart';
 import '../../reminders/screens/reminder_detail_screen.dart';
 import '../../reminders/widgets/reminder_tile.dart';
+import '../../subscriptions/screens/add_edit_subscription_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -89,7 +93,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return map;
   }
 
-  void _showDayRemindersBottomSheet(BuildContext context, DateTime day, List<Reminder> dayReminders) {
+  /// Active subscription renewal dates that fall within the focused month,
+  /// bounded to the visible month (§4, §17.1). Returns date -> subscription.
+  Map<DateTime, List<Subscription>> _buildMonthRenewalsMap(List<Subscription> subscriptions) {
+    final map = <DateTime, List<Subscription>>{};
+    final monthStart = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final monthEnd = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
+
+    for (final sub in subscriptions) {
+      if (!sub.isActive) continue;
+      final dateKey = DateTime(sub.nextRenewalDate.year, sub.nextRenewalDate.month, sub.nextRenewalDate.day);
+      if (dateKey.isBefore(monthStart) || dateKey.isAfter(monthEnd)) continue;
+      map.putIfAbsent(dateKey, () => []).add(sub);
+    }
+    return map;
+  }
+
+  void _showDayRemindersBottomSheet(
+    BuildContext context,
+    DateTime day,
+    List<Reminder> dayReminders,
+    List<Subscription> dayRenewals,
+  ) {
     final categoryProvider = context.read<CategoryProvider>();
 
     showModalBottomSheet(
@@ -99,6 +124,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) {
+        final theme = Theme.of(ctx);
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.of(ctx).size.height * 0.6,
@@ -113,7 +139,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Text(
                     DateFormat('EEEE, d MMMM yyyy').format(day),
-                    style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
                   ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
@@ -131,12 +157,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ],
               ),
               const Divider(),
-              if (dayReminders.isEmpty)
+              if (dayRenewals.isNotEmpty) ...[
+                Text(
+                  'Subscription renewals',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: theme.colorScheme.tertiary,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                ...dayRenewals.map((s) => ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.autorenew),
+                      title: Text(s.name),
+                      subtitle: Text('${s.price.toStringAsFixed(2)} ${s.currency} · ${s.billingCycle.displayName}'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddEditSubscriptionScreen(subscription: s),
+                          ),
+                        );
+                      },
+                    )),
+                const Divider(),
+              ],
+              if (dayReminders.isEmpty && dayRenewals.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24.0),
                   child: Center(child: Text('No reminders scheduled for this day.')),
                 )
-              else
+              else if (dayReminders.isNotEmpty)
                 Expanded(
                   child: ListView.builder(
                     itemCount: dayReminders.length,
@@ -176,8 +228,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final theme = Theme.of(context);
     final settings = context.watch<SettingsProvider>();
     final reminderProvider = context.watch<ReminderProvider>();
+    final subscriptionProvider = context.watch<SubscriptionProvider>();
 
     final occurrencesMap = _buildMonthOccurrencesMap(reminderProvider.reminders);
+    final renewalsMap = _buildMonthRenewalsMap(subscriptionProvider.subscriptions);
 
     final weekStartsMonday = settings.weekStartsMonday;
     final weekdays = weekStartsMonday
@@ -267,6 +321,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 final isSelected = cellDate.isAtSameMomentAs(_selectedDay);
 
                 final dayReminders = occurrencesMap[cellDate] ?? [];
+                final dayRenewals = renewalsMap[cellDate] ?? const [];
                 final hasOverdue = dayReminders.any((r) => !r.isCompleted && cellDate.isBefore(todayDate));
 
                 final statusColors = theme.extension<AppStatusColors>() ?? AppStatusColors.light;
@@ -274,7 +329,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 return InkWell(
                   onTap: () {
                     setState(() => _selectedDay = cellDate);
-                    _showDayRemindersBottomSheet(context, cellDate, dayReminders);
+                    _showDayRemindersBottomSheet(context, cellDate, dayReminders, dayRenewals);
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
@@ -313,6 +368,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
                               );
                             }).toList(),
                           ),
+                          if (dayRenewals.isNotEmpty) ...[
+                            const SizedBox(height: 2),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.tertiary.withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.autorenew, size: 9, color: theme.colorScheme.tertiary),
+                                  const SizedBox(width: 2),
+                                  Text(
+                                    '${dayRenewals.length}',
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: theme.colorScheme.tertiary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 9,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ],
                     ),

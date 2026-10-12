@@ -5,6 +5,7 @@ import 'providers/category_provider.dart';
 import 'providers/reminder_provider.dart';
 import 'providers/settings_provider.dart';
 import 'providers/statistics_provider.dart';
+import 'providers/subscription_provider.dart';
 import 'theme/app_theme.dart';
 
 class LifeReminderApp extends StatelessWidget {
@@ -18,6 +19,7 @@ class LifeReminderApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => CategoryProvider()..loadCategories()),
         ChangeNotifierProvider(create: (_) => ReminderProvider()..catchUpOnLaunch()),
         ChangeNotifierProvider(create: (_) => StatisticsProvider()),
+        ChangeNotifierProvider(create: (_) => SubscriptionProvider()..catchUpOnLaunch()),
       ],
       child: Consumer<SettingsProvider>(
         builder: (context, settings, _) {

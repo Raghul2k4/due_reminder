@@ -259,6 +259,7 @@ class ReminderRepository {
     await db.transaction((txn) async {
       await txn.delete('completion_records');
       await txn.delete('reminders');
+      await txn.delete('subscriptions');
       await txn.delete('categories', where: 'is_custom = 1');
       await txn.delete('settings');
     });

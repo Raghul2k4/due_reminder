@@ -8,10 +8,12 @@ import 'package:provider/provider.dart';
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/reminder_provider.dart';
 import '../../../app/providers/settings_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
 import '../../../core/services/backup_service.dart';
 import '../../../data/models/reminder_enums.dart';
 import '../../categories/screens/categories_screen.dart';
 import '../../statistics/screens/statistics_screen.dart';
+import '../../subscriptions/screens/subscriptions_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -202,7 +204,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true && context.mounted) {
+      final subscriptionProvider = context.read<SubscriptionProvider>();
       await context.read<ReminderProvider>().deleteAllData();
+      await subscriptionProvider.loadSubscriptions();
       if (context.mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('All data deleted.')));
@@ -241,6 +245,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const StatisticsScreen()),
+              );
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.autorenew),
+            title: const Text('Manage Subscriptions'),
+            subtitle: const Text('Track renewals and recurring spending'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SubscriptionsScreen()),
               );
             },
           ),

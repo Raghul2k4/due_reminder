@@ -3,12 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/reminder_provider.dart';
+import '../../../app/providers/subscription_provider.dart';
+import '../../../core/extensions/date_extensions.dart';
 import '../../../data/models/category.dart';
 import '../../../data/models/reminder_enums.dart';
+import '../../../data/models/subscription.dart';
+import '../../../data/models/subscription_enums.dart';
 import '../../../data/repositories/reminder_repository.dart';
 import '../../../shared/empty_state_widget.dart';
 import '../../reminders/screens/reminder_detail_screen.dart';
 import '../../reminders/widgets/reminder_tile.dart';
+import '../../subscriptions/screens/add_edit_subscription_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -25,6 +30,9 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SubscriptionProvider>().loadSubscriptions();
+    });
   }
 
   void _onSearchChanged() {
@@ -191,8 +199,22 @@ class _SearchScreenState extends State<SearchScreen> {
 
           // Results List / Empty State
           Expanded(
-            child: reminderProvider.reminders.isEmpty
-                ? EmptyStateWidget(
+            child: Builder(
+              builder: (context) {
+                final subscriptionProvider = context.watch<SubscriptionProvider>();
+                final query = reminderProvider.searchQuery.trim().toLowerCase();
+                final matchingSubscriptions = query.isEmpty
+                    ? <Subscription>[]
+                    : subscriptionProvider.subscriptions.where((s) {
+                        return s.name.toLowerCase().contains(query) ||
+                            (s.notes?.toLowerCase().contains(query) ?? false);
+                      }).toList();
+
+                final reminders = reminderProvider.reminders;
+                final hasNothing = reminders.isEmpty && matchingSubscriptions.isEmpty;
+
+                if (hasNothing) {
+                  return EmptyStateWidget(
                     icon: Icons.search_off,
                     headline: 'Nothing found.',
                     body: 'Try a different word, or check your filters.',
@@ -201,34 +223,88 @@ class _SearchScreenState extends State<SearchScreen> {
                       _searchController.clear();
                       reminderProvider.clearFilters();
                     },
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    itemCount: reminderProvider.reminders.length,
-                    itemBuilder: (context, index) {
-                      final r = reminderProvider.reminders[index];
-                      final category = categoryProvider.getCategoryById(r.categoryId) ?? Category.defaultCategory;
+                  );
+                }
 
-                      return ReminderTile(
-                        reminder: r,
-                        category: category,
-                        onCompleteChanged: (_) {
-                          context.read<ReminderProvider>().completeReminder(r.id, categoryName: category.name);
-                        },
-                        onFavoriteToggle: () => context.read<ReminderProvider>().toggleFavorite(r.id),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ReminderDetailScreen(reminderId: r.id),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                return ListView(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: [
+                    if (matchingSubscriptions.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                        child: Text(
+                          'Subscriptions',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ),
+                      ...matchingSubscriptions.map((s) => _buildSubscriptionResultTile(context, s)),
+                    ],
+                    if (reminders.isNotEmpty) ...[
+                      if (matchingSubscriptions.isNotEmpty)
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+                          child: Text(
+                            'Reminders',
+                            style: TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ...reminders.map((r) {
+                        final category = categoryProvider.getCategoryById(r.categoryId) ?? Category.defaultCategory;
+                        return ReminderTile(
+                          reminder: r,
+                          category: category,
+                          onCompleteChanged: (_) {
+                            context.read<ReminderProvider>().completeReminder(r.id, categoryName: category.name);
+                          },
+                          onFavoriteToggle: () => context.read<ReminderProvider>().toggleFavorite(r.id),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => ReminderDetailScreen(reminderId: r.id),
+                              ),
+                            );
+                          },
+                        );
+                      }),
+                    ],
+                  ],
+                );
+              },
+            ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSubscriptionResultTile(BuildContext context, Subscription sub) {
+    final theme = Theme.of(context);
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: ListTile(
+        leading: const Icon(Icons.autorenew),
+        title: Text(sub.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+        subtitle: Text('${sub.price.toStringAsFixed(2)} ${sub.currency} · ${sub.billingCycle.displayName}'),
+        trailing: sub.isActive
+            ? Text(
+                sub.nextRenewalDate.toRelativeString(),
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              )
+            : Text(sub.status.displayName),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => AddEditSubscriptionScreen(subscription: sub),
+            ),
+          );
+        },
       ),
     );
   }

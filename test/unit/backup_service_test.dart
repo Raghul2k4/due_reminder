@@ -73,5 +73,78 @@ void main() {
       expect(result.isValid, isFalse);
       expect(result.errorMessage, contains('Missing required sections'));
     });
+
+    test('v2 backup with subscriptions counts subscriptions', () async {
+      final validJson = jsonEncode({
+        'app': 'life_reminder',
+        'schemaVersion': 2,
+        'exportedAt': '2026-10-09T10:30:00.000Z',
+        'counts': {'reminders': 0, 'categories': 1, 'completions': 0, 'subscriptions': 2},
+        'categories': [
+          {'id': 'cat_other', 'name': 'Other', 'iconKey': 'other', 'colorValue': 4283215696, 'isCustom': false, 'sortOrder': 11, 'isArchived': false}
+        ],
+        'reminders': [],
+        'completionRecords': [],
+        'subscriptions': [
+          {
+            'id': 'sub_1',
+            'name': 'Netflix',
+            'notes': null,
+            'price': 15.99,
+            'currency': 'USD',
+            'billingCycle': 'monthly',
+            'nextRenewalDate': '2026-11-01T00:00:00.000',
+            'status': 'active',
+            'reminderEnabled': true,
+            'reminderLead': '1d',
+            'createdAt': '2026-10-09T10:00:00.000',
+            'notificationId': 1
+          },
+          {
+            'id': 'sub_2',
+            'name': 'Gym',
+            'notes': null,
+            'price': 50,
+            'currency': 'USD',
+            'billingCycle': 'monthly',
+            'nextRenewalDate': '2026-11-05T00:00:00.000',
+            'status': 'paused',
+            'reminderEnabled': false,
+            'reminderLead': '3d',
+            'createdAt': '2026-10-09T10:00:00.000',
+            'notificationId': 2
+          }
+        ]
+      });
+
+      final result = await backupService.validateBackupContent(validJson);
+      expect(result.isValid, isTrue);
+      expect(result.subscriptionCount, equals(2));
+    });
+
+    test('v1 backup without subscriptions still validates with zero subscriptions', () async {
+      final validJson = jsonEncode({
+        'app': 'life_reminder',
+        'schemaVersion': 1,
+        'exportedAt': '2026-10-09T10:30:00.000Z',
+        'counts': {'reminders': 0, 'categories': 1, 'completions': 0},
+        'categories': [
+          {'id': 'cat_other', 'name': 'Other', 'iconKey': 'other', 'colorValue': 4283215696, 'isCustom': false, 'sortOrder': 11, 'isArchived': false}
+        ],
+        'reminders': [],
+        'completionRecords': []
+      });
+
+      final result = await backupService.validateBackupContent(validJson);
+      expect(result.isValid, isTrue);
+      expect(result.subscriptionCount, equals(0));
+    });
+
+    test('Future schema version (v3) rejects backup', () async {
+      final invalidJson = jsonEncode({'app': 'life_reminder', 'schemaVersion': 3, 'categories': [], 'reminders': [], 'completionRecords': []});
+      final result = await backupService.validateBackupContent(invalidJson);
+      expect(result.isValid, isFalse);
+      expect(result.errorMessage, contains('newer version'));
+    });
   });
 }

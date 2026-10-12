@@ -5,7 +5,7 @@ import '../models/category.dart';
 
 class AppDatabase {
   static const String _dbName = 'life_reminder.db';
-  static const int _dbVersion = 1;
+  static const int _dbVersion = 2;
 
   static AppDatabase? _instance;
   Database? _db;
@@ -124,6 +124,8 @@ class AppDatabase {
       );
     ''');
 
+    await _createSubscriptionsTable(db);
+
     // Seed built-in categories
     final batch = db.batch();
     for (final cat in Category.builtInCategories) {
@@ -133,7 +135,35 @@ class AppDatabase {
   }
 
   static Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // Migration logic for future versions
+    // v2: Subscription Reminder Manager. Additive table only, no data loss.
+    if (oldVersion < 2) {
+      await _createSubscriptionsTable(db);
+    }
+  }
+
+  /// Creates the subscriptions table used by the Subscription Reminder Manager.
+  /// Shared by onCreate and the v2 upgrade so both paths stay identical.
+  static Future<void> _createSubscriptionsTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id                TEXT PRIMARY KEY,
+        name              TEXT NOT NULL,
+        notes             TEXT,
+        price             REAL NOT NULL,
+        currency          TEXT NOT NULL DEFAULT 'USD',
+        billing_cycle     TEXT NOT NULL,
+        next_renewal_date INTEGER NOT NULL,
+        status            TEXT NOT NULL DEFAULT 'active',
+        reminder_enabled  INTEGER NOT NULL DEFAULT 0,
+        reminder_lead     TEXT NOT NULL DEFAULT '1d',
+        created_at        INTEGER NOT NULL,
+        notification_id   INTEGER NOT NULL
+      );
+    ''');
+
+    await db.execute('''
+      CREATE INDEX IF NOT EXISTS idx_subscriptions_renewal ON subscriptions(next_renewal_date);
+    ''');
   }
 
   Future<void> close() async {

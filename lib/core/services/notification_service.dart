@@ -3,6 +3,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 import '../../data/models/reminder.dart';
+import '../../data/models/subscription.dart';
+import '../../data/models/subscription_enums.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -62,12 +64,22 @@ class NotificationService {
       playSound: false,
     );
 
+    const subscriptionsChannel = AndroidNotificationChannel(
+      'subscriptions_channel',
+      'Subscriptions',
+      description: 'Reminders for upcoming subscription renewals',
+      importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
+    );
+
     final androidImplementation = _notificationsPlugin
         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
 
     if (androidImplementation != null) {
       await androidImplementation.createNotificationChannel(remindersChannel);
       await androidImplementation.createNotificationChannel(overdueChannel);
+      await androidImplementation.createNotificationChannel(subscriptionsChannel);
     }
   }
 
@@ -124,6 +136,80 @@ class NotificationService {
         );
       } catch (err) {
         debugPrint('Failed to schedule notification: $err');
+      }
+    }
+  }
+
+  /// Schedules (or cancels) the renewal reminder for [subscription].
+  ///
+  /// The notification fires [Subscription.reminderLead] days before the next
+  /// renewal. Paused/cancelled subscriptions, or reminders turned off, cancel
+  /// any pending notification instead. Duplicate prevention relies on the stable
+  /// per-subscription notification id: re-scheduling the same id replaces the
+  /// previous one (§3).
+  Future<void> scheduleSubscriptionNotification(Subscription subscription) async {
+    if (!subscription.reminderEnabled || !subscription.isActive) {
+      await cancelNotification(subscription.notificationId);
+      return;
+    }
+
+    // Reminder fires lead days before the renewal, at 09:00 local.
+    final renewalDay = DateTime(
+      subscription.nextRenewalDate.year,
+      subscription.nextRenewalDate.month,
+      subscription.nextRenewalDate.day,
+      9,
+    );
+    final scheduledDate =
+        renewalDay.subtract(Duration(days: subscription.reminderLead.leadDays));
+
+    if (scheduledDate.isBefore(DateTime.now())) {
+      // A stale reminder time would never fire; drop it rather than pile up.
+      await cancelNotification(subscription.notificationId);
+      return;
+    }
+
+    final tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
+    final body = '${subscription.billingCycle.displayName} renewal'
+        '${subscription.reminderLead == SubscriptionReminderLead.onRenewalDate ? ' today' : ' coming up'}'
+        ' · ${subscription.currency} ${subscription.price.toStringAsFixed(2)}';
+
+    const androidDetails = AndroidNotificationDetails(
+      'subscriptions_channel',
+      'Subscriptions',
+      channelDescription: 'Reminders for upcoming subscription renewals',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: DarwinNotificationDetails(),
+    );
+
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id: subscription.notificationId,
+        title: '${subscription.name} renews soon',
+        body: body,
+        scheduledDate: tzScheduledDate,
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        payload: 'subscription:${subscription.id}',
+      );
+    } catch (e) {
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          id: subscription.notificationId,
+          title: '${subscription.name} renews soon',
+          body: body,
+          scheduledDate: tzScheduledDate,
+          notificationDetails: details,
+          androidScheduleMode: AndroidScheduleMode.inexact,
+          payload: 'subscription:${subscription.id}',
+        );
+      } catch (err) {
+        debugPrint('Failed to schedule subscription notification: $err');
       }
     }
   }
