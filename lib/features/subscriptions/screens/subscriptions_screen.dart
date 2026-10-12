@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../../app/theme/app_colors.dart';
+import '../../../app/theme/finance_theme.dart';
 import '../../../app/providers/subscription_provider.dart';
 import '../../../core/extensions/date_extensions.dart';
 import '../../../data/models/subscription.dart';
 import '../../../data/models/subscription_enums.dart';
 import '../../../shared/empty_state_widget.dart';
+import '../models/subscription_brand.dart';
+import '../widgets/brand_logo.dart';
 import 'add_edit_subscription_screen.dart';
 
-/// Subscription dashboard (§2). Shows spending estimates and upcoming renewals.
+/// Subscription dashboard (design.md §9).
+///
+/// Navy canvas with grouped cards: service/logo + name, price + billing
+/// period, next renewal, then status/reminder. Exactly one Add action.
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({super.key});
 
@@ -28,7 +34,17 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     });
   }
 
+  void _openAdd() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const AddEditSubscriptionScreen(),
+      ),
+    );
+  }
+
   Future<void> _handleDelete(BuildContext context, Subscription sub) async {
+    final finance = context.finance;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -41,7 +57,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: finance.error),
             child: const Text('Delete'),
           ),
         ],
@@ -181,6 +197,18 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
+              BrandLogo(
+                brand:
+                    SubscriptionBrand.byName(sub.name) ??
+                    SubscriptionBrand(
+                      name: sub.name,
+                      category: sub.billingCycle.displayName,
+                      colorValue: statusColor.toARGB32(),
+                      glyph: BrandGlyph.generic,
+                    ),
+                size: 44,
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -456,14 +484,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   ),
                 ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const AddEditSubscriptionScreen(),
-            ),
-          );
-        },
+        onPressed: _openAdd,
         icon: const Icon(Icons.add),
         label: const Text('Add subscription'),
       ),
