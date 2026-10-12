@@ -58,7 +58,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           NavigationDestination(
             icon: Icon(Icons.autorenew_outlined),
             selectedIcon: Icon(Icons.autorenew),
-            label: 'Subscriptions',
+            label: 'Subs',
+            tooltip: 'Subscriptions',
           ),
           NavigationDestination(
             icon: Icon(Icons.settings_outlined),

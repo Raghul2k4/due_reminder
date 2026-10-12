@@ -366,19 +366,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         ],
       ),
       body: all.isEmpty
-          ? EmptyStateWidget(
+          ? const EmptyStateWidget(
               icon: Icons.autorenew,
               headline: 'No subscriptions yet.',
               body: 'Track recurring expenses like streaming, gym, and bills, and get reminded before they renew.',
-              actionLabel: 'Add subscription',
-              onActionPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AddEditSubscriptionScreen(),
-                  ),
-                );
-              },
             )
           : RefreshIndicator(
                   onRefresh: provider.loadSubscriptions,
