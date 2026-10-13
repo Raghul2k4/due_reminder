@@ -41,7 +41,7 @@ class QuickAddParser {
       priority = Priority.high;
       raw = raw.replaceAll('!!', '').trim();
     } else if (raw.contains('!')) {
-      priority = Priority.high; // '!'' or '!!' mapped to high per spec rules or medium default
+      priority = Priority.medium;
       raw = raw.replaceAll('!', '').trim();
     }
 
@@ -73,35 +73,49 @@ class QuickAddParser {
 
     String workingTitle = raw;
 
-    // Recurrence parsing: every N (day|week|month|year)s?
-    final everyNRegex = RegExp(r'\bevery\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b', caseSensitive: false);
-    final everyNMatch = everyNRegex.firstMatch(workingTitle);
-    if (everyNMatch != null) {
-      repeatInterval = int.parse(everyNMatch.group(1)!);
-      final unitStr = everyNMatch.group(2)!.toLowerCase();
-      repeatType = RepeatType.custom;
-      if (unitStr.startsWith('day')) {
+    // Recurrence parsing: "every week/month/year" (no N) maps directly,
+    // then "every N (day|week|month|year)s?".
+    final everySingleRegex = RegExp(
+      r'\bevery\s+(day|daily|week|weekly|month|monthly|year|yearly)\b',
+      caseSensitive: false,
+    );
+    final everySingleMatch = everySingleRegex.firstMatch(workingTitle);
+    if (everySingleMatch != null) {
+      final unitStr = everySingleMatch.group(1)!.toLowerCase();
+      repeatInterval = 1;
+      if (unitStr.startsWith('day') || unitStr == 'daily') {
+        repeatType = RepeatType.daily;
         repeatUnit = RepeatUnit.days;
-      } else if (unitStr.startsWith('week')) {
+      } else if (unitStr.startsWith('week') || unitStr == 'weekly') {
+        repeatType = RepeatType.weekly;
         repeatUnit = RepeatUnit.weeks;
-      } else if (unitStr.startsWith('month')) {
+      } else if (unitStr.startsWith('month') || unitStr == 'monthly') {
+        repeatType = RepeatType.monthly;
         repeatUnit = RepeatUnit.months;
-      } else if (unitStr.startsWith('year')) {
+      } else {
+        repeatType = RepeatType.yearly;
         repeatUnit = RepeatUnit.years;
       }
-      workingTitle = workingTitle.replaceAll(everyNMatch.group(0)!, '').trim();
+      workingTitle = workingTitle
+          .replaceAll(everySingleMatch.group(0)!, '')
+          .trim();
     } else {
-      // Named recurrences: every day, every week, every month, every year
-      final everyNamedRegex = RegExp(r'\bevery\s+(day|week|month|year)\b', caseSensitive: false);
-      final everyNamedMatch = everyNamedRegex.firstMatch(workingTitle);
-      if (everyNamedMatch != null) {
-        final unitStr = everyNamedMatch.group(1)!.toLowerCase();
-        repeatInterval = 1;
-        if (unitStr == 'day') repeatType = RepeatType.daily;
-        if (unitStr == 'week') repeatType = RepeatType.weekly;
-        if (unitStr == 'month') repeatType = RepeatType.monthly;
-        if (unitStr == 'year') repeatType = RepeatType.yearly;
-        workingTitle = workingTitle.replaceAll(everyNamedMatch.group(0)!, '').trim();
+      final everyNRegex = RegExp(r'\bevery\s+(\d+)\s+(day|days|week|weeks|month|months|year|years)\b', caseSensitive: false);
+      final everyNMatch = everyNRegex.firstMatch(workingTitle);
+      if (everyNMatch != null) {
+        repeatInterval = int.parse(everyNMatch.group(1)!);
+        final unitStr = everyNMatch.group(2)!.toLowerCase();
+        repeatType = RepeatType.custom;
+        if (unitStr.startsWith('day')) {
+          repeatUnit = RepeatUnit.days;
+        } else if (unitStr.startsWith('week')) {
+          repeatUnit = RepeatUnit.weeks;
+        } else if (unitStr.startsWith('month')) {
+          repeatUnit = RepeatUnit.months;
+        } else if (unitStr.startsWith('year')) {
+          repeatUnit = RepeatUnit.years;
+        }
+        workingTitle = workingTitle.replaceAll(everyNMatch.group(0)!, '').trim();
       }
     }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/reminder_provider.dart';
 import '../../../app/providers/settings_provider.dart';
@@ -56,17 +57,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   /// Expands occurrences for the focused month bounded per §17.1
-  Map<DateTime, List<Reminder>> _buildMonthOccurrencesMap(List<Reminder> allReminders) {
+  Map<DateTime, List<Reminder>> _buildMonthOccurrencesMap(
+    List<Reminder> allReminders,
+  ) {
     final Map<DateTime, List<Reminder>> map = {};
 
     final monthStart = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    final monthEnd = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
+    final monthEnd = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+      23,
+      59,
+      59,
+    );
 
     for (final reminder in allReminders) {
       if (reminder.isDeleted) continue;
 
       if (!reminder.isRecurring) {
-        final date = DateTime(reminder.effectiveDueDate.year, reminder.effectiveDueDate.month, reminder.effectiveDueDate.day);
+        final date = DateTime(
+          reminder.effectiveDueDate.year,
+          reminder.effectiveDueDate.month,
+          reminder.effectiveDueDate.day,
+        );
         map.putIfAbsent(date, () => []).add(reminder);
       } else {
         // Expand occurrences in visible month
@@ -79,7 +93,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
         );
 
         while (!candidate.isAfter(monthEnd)) {
-          final dateKey = DateTime(candidate.year, candidate.month, candidate.day);
+          final dateKey = DateTime(
+            candidate.year,
+            candidate.month,
+            candidate.day,
+          );
           map.putIfAbsent(dateKey, () => []).add(reminder);
           candidate = addSingleStep(
             candidate,
@@ -95,14 +113,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   /// Active subscription renewal dates that fall within the focused month,
   /// bounded to the visible month (§4, §17.1). Returns date -> subscription.
-  Map<DateTime, List<Subscription>> _buildMonthRenewalsMap(List<Subscription> subscriptions) {
+  Map<DateTime, List<Subscription>> _buildMonthRenewalsMap(
+    List<Subscription> subscriptions,
+  ) {
     final map = <DateTime, List<Subscription>>{};
     final monthStart = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
-    final monthEnd = DateTime(_focusedMonth.year, _focusedMonth.month + 1, 0, 23, 59, 59);
+    final monthEnd = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month + 1,
+      0,
+      23,
+      59,
+      59,
+    );
 
     for (final sub in subscriptions) {
       if (!sub.isActive) continue;
-      final dateKey = DateTime(sub.nextRenewalDate.year, sub.nextRenewalDate.month, sub.nextRenewalDate.day);
+      final dateKey = DateTime(
+        sub.nextRenewalDate.year,
+        sub.nextRenewalDate.month,
+        sub.nextRenewalDate.day,
+      );
       if (dateKey.isBefore(monthStart) || dateKey.isAfter(monthEnd)) continue;
       map.putIfAbsent(dateKey, () => []).add(sub);
     }
@@ -139,7 +170,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Text(
                     DateFormat('EEEE, d MMMM yyyy').format(day),
-                    style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline),
@@ -149,7 +182,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => AddEditReminderScreen(initialDate: day),
+                          builder: (_) =>
+                              AddEditReminderScreen(initialDate: day),
                         ),
                       );
                     },
@@ -166,27 +200,34 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                ...dayRenewals.map((s) => ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.autorenew),
-                      title: Text(s.name),
-                      subtitle: Text('${s.price.toStringAsFixed(2)} ${s.currency} · ${s.billingCycle.displayName}'),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => AddEditSubscriptionScreen(subscription: s),
-                          ),
-                        );
-                      },
-                    )),
+                ...dayRenewals.map(
+                  (s) => ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.autorenew),
+                    title: Text(s.name),
+                    subtitle: Text(
+                      '${s.price.toStringAsFixed(2)} ${s.currency} · ${s.billingCycle.displayName}',
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              AddEditSubscriptionScreen(subscription: s),
+                        ),
+                      );
+                    },
+                  ),
+                ),
                 const Divider(),
               ],
               if (dayReminders.isEmpty && dayRenewals.isEmpty)
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 24.0),
-                  child: Center(child: Text('No reminders scheduled for this day.')),
+                  child: Center(
+                    child: Text('No reminders scheduled for this day.'),
+                  ),
                 )
               else if (dayReminders.isNotEmpty)
                 Expanded(
@@ -194,21 +235,29 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     itemCount: dayReminders.length,
                     itemBuilder: (context, idx) {
                       final r = dayReminders[idx];
-                      final category = categoryProvider.getCategoryById(r.categoryId) ?? Category.defaultCategory;
+                      final category =
+                          categoryProvider.getCategoryById(r.categoryId) ??
+                          Category.defaultCategory;
                       return ReminderTile(
                         reminder: r,
                         category: category,
                         onCompleteChanged: (_) {
-                          context.read<ReminderProvider>().completeReminder(r.id, categoryName: category.name);
+                          context.read<ReminderProvider>().completeReminder(
+                            r.id,
+                            categoryName: category.name,
+                          );
                           Navigator.pop(ctx);
                         },
-                        onFavoriteToggle: () => context.read<ReminderProvider>().toggleFavorite(r.id),
+                        onFavoriteToggle: () => context
+                            .read<ReminderProvider>()
+                            .toggleFavorite(r.id),
                         onTap: () {
                           Navigator.pop(ctx);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ReminderDetailScreen(reminderId: r.id),
+                              builder: (_) =>
+                                  ReminderDetailScreen(reminderId: r.id),
                             ),
                           );
                         },
@@ -230,16 +279,27 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final reminderProvider = context.watch<ReminderProvider>();
     final subscriptionProvider = context.watch<SubscriptionProvider>();
 
-    final occurrencesMap = _buildMonthOccurrencesMap(reminderProvider.reminders);
-    final renewalsMap = _buildMonthRenewalsMap(subscriptionProvider.subscriptions);
+    final occurrencesMap = _buildMonthOccurrencesMap(
+      reminderProvider.reminders,
+    );
+    final renewalsMap = _buildMonthRenewalsMap(
+      subscriptionProvider.subscriptions,
+    );
 
     final weekStartsMonday = settings.weekStartsMonday;
     final weekdays = weekStartsMonday
         ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-    final daysInMonthCount = DateUtils.getDaysInMonth(_focusedMonth.year, _focusedMonth.month);
-    final firstDayOfMonth = DateTime(_focusedMonth.year, _focusedMonth.month, 1);
+    final daysInMonthCount = DateUtils.getDaysInMonth(
+      _focusedMonth.year,
+      _focusedMonth.month,
+    );
+    final firstDayOfMonth = DateTime(
+      _focusedMonth.year,
+      _focusedMonth.month,
+      1,
+    );
 
     int startOffset = firstDayOfMonth.weekday;
     if (weekStartsMonday) {
@@ -279,21 +339,26 @@ class _CalendarScreenState extends State<CalendarScreen> {
         children: [
           // Weekday Headers
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+            padding: const EdgeInsets.symmetric(
+              vertical: 8.0,
+              horizontal: 16.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: weekdays
-                  .map((w) => SizedBox(
-                        width: 40,
-                        child: Text(
-                          w,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
+                  .map(
+                    (w) => SizedBox(
+                      width: 40,
+                      child: Text(
+                        w,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                      ))
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -316,28 +381,48 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   return const SizedBox.shrink();
                 }
 
-                final cellDate = DateTime(_focusedMonth.year, _focusedMonth.month, dayNumber);
+                final cellDate = DateTime(
+                  _focusedMonth.year,
+                  _focusedMonth.month,
+                  dayNumber,
+                );
                 final isToday = cellDate.isAtSameMomentAs(todayDate);
                 final isSelected = cellDate.isAtSameMomentAs(_selectedDay);
 
                 final dayReminders = occurrencesMap[cellDate] ?? [];
                 final dayRenewals = renewalsMap[cellDate] ?? const [];
-                final hasOverdue = dayReminders.any((r) => !r.isCompleted && cellDate.isBefore(todayDate));
+                final hasOverdue = dayReminders.any(
+                  (r) => !r.isCompleted && cellDate.isBefore(todayDate),
+                );
 
-                final statusColors = theme.extension<AppStatusColors>() ?? AppStatusColors.light;
+                final statusColors =
+                    theme.extension<AppStatusColors>() ?? AppStatusColors.light;
 
                 return InkWell(
                   onTap: () {
                     setState(() => _selectedDay = cellDate);
-                    _showDayRemindersBottomSheet(context, cellDate, dayReminders, dayRenewals);
+                    _showDayRemindersBottomSheet(
+                      context,
+                      cellDate,
+                      dayReminders,
+                      dayRenewals,
+                    );
                   },
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     decoration: BoxDecoration(
                       color: isSelected
                           ? theme.colorScheme.primaryContainer
-                          : (isToday ? theme.colorScheme.secondaryContainer.withValues(alpha: 0.5) : null),
-                      border: isToday ? Border.all(color: theme.colorScheme.primary, width: 2) : null,
+                          : (isToday
+                                ? theme.colorScheme.secondaryContainer
+                                      .withValues(alpha: 0.5)
+                                : null),
+                      border: isToday
+                          ? Border.all(
+                              color: theme.colorScheme.primary,
+                              width: 2,
+                            )
+                          : null,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Column(
@@ -346,7 +431,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         Text(
                           '$dayNumber',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: isToday || isSelected ? FontWeight.bold : FontWeight.normal,
+                            fontWeight: isToday || isSelected
+                                ? FontWeight.bold
+                                : FontWeight.normal,
                             color: hasOverdue ? statusColors.overdue : null,
                           ),
                         ),
@@ -354,32 +441,56 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           const SizedBox(height: 2),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: dayReminders.take(3).map((r) {
-                              return Container(
-                                width: 5,
-                                height: 5,
-                                margin: const EdgeInsets.symmetric(horizontal: 1),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: r.isCompleted
-                                      ? statusColors.completed
-                                      : (cellDate.isBefore(todayDate) ? statusColors.overdue : theme.colorScheme.primary),
+                            children: [
+                              ...dayReminders.take(3).map((r) {
+                                return Container(
+                                  width: 5,
+                                  height: 5,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 1,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: r.isCompleted
+                                        ? statusColors.completed
+                                        : (cellDate.isBefore(todayDate)
+                                              ? statusColors.overdue
+                                              : theme.colorScheme.primary),
+                                  ),
+                                );
+                              }),
+                              if (dayReminders.length > 3)
+                                Text(
+                                  '+${dayReminders.length - 3}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: theme.colorScheme.onSurfaceVariant,
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                 ),
-                              );
-                            }).toList(),
+                            ],
                           ),
                           if (dayRenewals.isNotEmpty) ...[
                             const SizedBox(height: 2),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 1,
+                              ),
                               decoration: BoxDecoration(
-                                color: theme.colorScheme.tertiary.withValues(alpha: 0.2),
+                                color: theme.colorScheme.tertiary.withValues(
+                                  alpha: 0.2,
+                                ),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.autorenew, size: 9, color: theme.colorScheme.tertiary),
+                                  Icon(
+                                    Icons.autorenew,
+                                    size: 9,
+                                    color: theme.colorScheme.tertiary,
+                                  ),
                                   const SizedBox(width: 2),
                                   Text(
                                     '${dayRenewals.length}',
@@ -405,17 +516,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
           // Selected Day Detail List Section
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 4.0,
+            ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   DateFormat('EEEE, d MMMM').format(_selectedDay),
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   '${selectedDayReminders.length} items',
-                  style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -425,27 +543,38 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ? Center(
                     child: Text(
                       'No reminders on this day.',
-                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   )
                 : ListView.builder(
                     itemCount: selectedDayReminders.length,
                     itemBuilder: (context, idx) {
                       final r = selectedDayReminders[idx];
-                      final categoryProvider = context.watch<CategoryProvider>();
-                      final category = categoryProvider.getCategoryById(r.categoryId) ?? Category.defaultCategory;
+                      final categoryProvider = context
+                          .watch<CategoryProvider>();
+                      final category =
+                          categoryProvider.getCategoryById(r.categoryId) ??
+                          Category.defaultCategory;
                       return ReminderTile(
                         reminder: r,
                         category: category,
                         onCompleteChanged: (_) {
-                          context.read<ReminderProvider>().completeReminder(r.id, categoryName: category.name);
+                          context.read<ReminderProvider>().completeReminder(
+                            r.id,
+                            categoryName: category.name,
+                          );
                         },
-                        onFavoriteToggle: () => context.read<ReminderProvider>().toggleFavorite(r.id),
+                        onFavoriteToggle: () => context
+                            .read<ReminderProvider>()
+                            .toggleFavorite(r.id),
                         onTap: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => ReminderDetailScreen(reminderId: r.id),
+                              builder: (_) =>
+                                  ReminderDetailScreen(reminderId: r.id),
                             ),
                           );
                         },

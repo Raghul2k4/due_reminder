@@ -274,6 +274,16 @@ class ReminderProvider extends ChangeNotifier {
     }
   }
 
+  Future<List<Reminder>> getTrash() async {
+    try {
+      return await _repository.getTrash();
+    } catch (e) {
+      _errorMessage = e.toString();
+      notifyListeners();
+      rethrow;
+    }
+  }
+
   Future<void> catchUpOnLaunch({DateTime? now}) async {
     final currentNow = now ?? DateTime.now();
     final count = await _repository.catchUpOverdueReminders(now: currentNow);

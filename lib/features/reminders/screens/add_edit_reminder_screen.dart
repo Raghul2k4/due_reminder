@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/reminder_provider.dart';
 import '../../../app/providers/settings_provider.dart';
@@ -8,17 +9,20 @@ import '../../../core/utils/recurrence.dart';
 import '../../../data/models/category.dart';
 import '../../../data/models/reminder.dart';
 import '../../../data/models/reminder_enums.dart';
+import '../models/reminder_templates.dart';
 
 class AddEditReminderScreen extends StatefulWidget {
   final Reminder? reminder;
   final String initialTitle;
   final DateTime? initialDate;
+  final ReminderTemplate? template;
 
   const AddEditReminderScreen({
     super.key,
     this.reminder,
     this.initialTitle = '',
     this.initialDate,
+    this.template,
   });
 
   @override
@@ -28,7 +32,7 @@ class AddEditReminderScreen extends StatefulWidget {
 class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
+  final _descriptionController =/controllers/textInput();
 
   late String _categoryId;
   late Priority _priority;
@@ -57,6 +61,8 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       _descriptionController.text = r.description ?? '';
       _categoryId = r.categoryId;
       _priority = r.priority;
+      _amountController.text = r.amount?.toString() ?? '';
+      _currency = r.currency ?? 'USD';
       _startDate = r.startDate;
       _dueDate = r.dueDate;
       _dueTime = r.dueTime;
@@ -67,13 +73,16 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       _notificationEnabled = r.notificationEnabled;
       _notificationTime = r.notificationTime;
     } else {
-      _titleController.text = widget.initialTitle;
-      _categoryId = settings.defaultCategoryId;
+      _titleController.text = widget.template?.title ?? widget.initialTitle;
+      _categoryId = widget.template?.categoryId ?? settings.defaultCategoryId;
       _priority = settings.defaultPriority;
       final now = widget.initialDate ?? DateTime.now();
       _startDate = DateTime(now.year, now.month, now.day);
       _dueDate = _startDate;
-      _repeatType = RepeatType.none;
+      _repeatType =
+          widget.template?.repeatType ?? RepeatType.none;
+      _repeatInterval = widget.template?.repeatInterval ?? 1;
+      _repeatUnit = widget.template?.repeatUnit ?? RepeatUnit.days;
       _notificationEnabled = settings.notificationsEnabled;
     }
 
@@ -109,7 +118,9 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Discard unsaved changes?'),
-        content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+        content: const Text(
+          'You have unsaved changes. Are you sure you want to discard them?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -117,7 +128,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             child: const Text('Discard'),
           ),
         ],
@@ -130,17 +144,23 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     final title = _titleController.text.trim();
-    final description = _descriptionController.text.trim().isEmpty ? null : _descriptionController.text.trim();
+    final description = _descriptionController.text.trim().isEmpty
+        ? null
+        : _descriptionController.text.trim();
 
     final categoryProvider = context.read<CategoryProvider>();
-    final category = categoryProvider.getCategoryById(_categoryId) ?? Category.defaultCategory;
+    final category =
+        categoryProvider.getCategoryById(_categoryId) ??
+        Category.defaultCategory;
     final reminderProvider = context.read<ReminderProvider>();
 
     final now = DateTime.now();
     final effectiveDueTime = _isAllDay ? null : _dueTime;
 
     final newNotificationTime = _notificationEnabled
-        ? (_notificationTime ?? effectiveDueTime ?? DateTime(_dueDate.year, _dueDate.month, _dueDate.day, 9, 0))
+        ? (_notificationTime ??
+              effectiveDueTime ??
+              DateTime(_dueDate.year, _dueDate.month, _dueDate.day, 9, 0))
         : null;
 
     if (widget.reminder != null) {
@@ -168,7 +188,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
           unit: _repeatUnit,
         ),
       );
-      await reminderProvider.updateReminder(updated, categoryName: category.name);
+      await reminderProvider.updateReminder(
+        updated,
+        categoryName: category.name,
+      );
     } else {
       final newReminder = Reminder(
         id: '',
@@ -188,13 +211,18 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         notificationId: 0,
         nextDueDate: computeNextDueDate(
           anchor: _dueDate,
-          from: _startDate.isBefore(_dueDate) ? _startDate.add(const Duration(seconds: -1)) : _dueDate.add(const Duration(seconds: -1)),
+          from: _startDate.isBefore(_dueDate)
+              ? _startDate.add(const Duration(seconds: -1))
+              : _dueDate.add(const Duration(seconds: -1)),
           type: _repeatType,
           interval: _repeatInterval,
           unit: _repeatUnit,
         ),
       );
-      await reminderProvider.createReminder(newReminder, categoryName: category.name);
+      await reminderProvider.createReminder(
+        newReminder,
+        categoryName: category.name,
+      );
     }
 
     if (mounted) Navigator.pop(context);
@@ -220,10 +248,7 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
         appBar: AppBar(
           title: Text(isEdit ? 'Edit Reminder' : 'New Reminder'),
           actions: [
-            FilledButton(
-              onPressed: _save,
-              child: const Text('Save'),
-            ),
+            FilledButton(onPressed: _save, child: const Text('Save')),
             const SizedBox(width: 16),
           ],
         ),
@@ -262,7 +287,10 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
 
               // Category Picker
               DropdownButtonFormField<String>(
-                initialValue: categoryProvider.getCategoryById(_categoryId) != null ? _categoryId : 'cat_other',
+                initialValue:
+                    categoryProvider.getCategoryById(_categoryId) != null
+                    ? _categoryId
+                    : 'cat_other',
                 decoration: const InputDecoration(
                   labelText: 'Category *',
                   prefixIcon: Icon(Icons.category),
@@ -272,7 +300,11 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                     value: c.id,
                     child: Row(
                       children: [
-                        Icon(Category.getIconData(c.iconKey), color: Color(c.colorValue), size: 20),
+                        Icon(
+                          Category.getIconData(c.iconKey),
+                          color: Color(c.colorValue),
+                          size: 20,
+                        ),
                         const SizedBox(width: 8),
                         Text(c.name),
                       ],
@@ -295,9 +327,21 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               const SizedBox(height: 8),
               SegmentedButton<Priority>(
                 segments: const [
-                  ButtonSegment(value: Priority.low, label: Text('Low'), icon: Icon(Icons.circle_outlined, size: 12)),
-                  ButtonSegment(value: Priority.medium, label: Text('Medium'), icon: Icon(Icons.circle, size: 12)),
-                  ButtonSegment(value: Priority.high, label: Text('High'), icon: Icon(Icons.error, size: 12)),
+                  ButtonSegment(
+                    value: Priority.low,
+                    label: Text('Low'),
+                    icon: Icon(Icons.circle_outlined, size: 12),
+                  ),
+                  ButtonSegment(
+                    value: Priority.medium,
+                    label: Text('Medium'),
+                    icon: Icon(Icons.circle, size: 12),
+                  ),
+                  ButtonSegment(
+                    value: Priority.high,
+                    label: Text('High'),
+                    icon: Icon(Icons.error, size: 12),
+                  ),
                 ],
                 selected: {_priority},
                 onSelectionChanged: (set) {
@@ -310,7 +354,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               const SizedBox(height: 24),
 
               // Schedule Section Header
-              Text('Schedule', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Schedule',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Divider(),
 
               // Date Picker ListTile
@@ -318,7 +367,9 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                 contentPadding: EdgeInsets.zero,
                 leading: const Icon(Icons.calendar_today),
                 title: const Text('Due Date'),
-                subtitle: Text(DateFormat('EEEE, d MMMM yyyy').format(_dueDate)),
+                subtitle: Text(
+                  DateFormat('EEEE, d MMMM yyyy').format(_dueDate),
+                ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () async {
                   final picked = await showDatePicker(
@@ -346,7 +397,13 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                   setState(() {
                     _isAllDay = val;
                     if (!val && _dueTime == null) {
-                      _dueTime = DateTime(_dueDate.year, _dueDate.month, _dueDate.day, 9, 0);
+                      _dueTime = DateTime(
+                        _dueDate.year,
+                        _dueDate.month,
+                        _dueDate.day,
+                        9,
+                        0,
+                      );
                     }
                     _markDirty();
                   });
@@ -357,16 +414,28 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.access_time),
                   title: const Text('Due Time'),
-                  subtitle: Text(_dueTime != null ? DateFormat('h:mm a').format(_dueTime!) : '9:00 AM'),
+                  subtitle: Text(
+                    _dueTime != null
+                        ? DateFormat('h:mm a').format(_dueTime!)
+                        : '9:00 AM',
+                  ),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () async {
                     final picked = await showTimePicker(
                       context: context,
-                      initialTime: _dueTime != null ? TimeOfDay.fromDateTime(_dueTime!) : const TimeOfDay(hour: 9, minute: 0),
+                      initialTime: _dueTime != null
+                          ? TimeOfDay.fromDateTime(_dueTime!)
+                          : const TimeOfDay(hour: 9, minute: 0),
                     );
                     if (picked != null) {
                       setState(() {
-                        _dueTime = DateTime(_dueDate.year, _dueDate.month, _dueDate.day, picked.hour, picked.minute);
+                        _dueTime = DateTime(
+                          _dueDate.year,
+                          _dueDate.month,
+                          _dueDate.day,
+                          picked.hour,
+                          picked.minute,
+                        );
                         _markDirty();
                       });
                     }
@@ -416,7 +485,9 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                           ),
                           Text(
                             '$_repeatInterval',
-                            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           IconButton(
                             icon: const Icon(Icons.add_circle_outline),
@@ -434,9 +505,14 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                       flex: 2,
                       child: DropdownButtonFormField<RepeatUnit>(
                         initialValue: _repeatUnit,
-                        decoration: const InputDecoration(border: OutlineInputBorder()),
+                        decoration: const InputDecoration(
+                          border: OutlineInputBorder(),
+                        ),
                         items: RepeatUnit.values.map((u) {
-                          return DropdownMenuItem(value: u, child: Text(u.displayName));
+                          return DropdownMenuItem(
+                            value: u,
+                            child: Text(u.displayName),
+                          );
                         }).toList(),
                         onChanged: (val) {
                           if (val != null) {
@@ -458,16 +534,24 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                    color: theme.colorScheme.primaryContainer.withValues(
+                      alpha: 0.3,
+                    ),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.preview, size: 18, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.preview,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'Next 3 Occurrences Preview:',
@@ -494,7 +578,12 @@ class _AddEditReminderScreenState extends State<AddEditReminderScreen> {
               ],
 
               // Notification Section Header
-              Text('Notifications', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+              Text(
+                'Notifications',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               const Divider(),
 
               SwitchListTile(

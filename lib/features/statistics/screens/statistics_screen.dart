@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/providers/category_provider.dart';
 import '../../../app/providers/statistics_provider.dart';
+import '../../../app/theme/app_colors.dart';
 import '../../../data/models/category.dart';
 
 class StatisticsScreen extends StatefulWidget {
@@ -26,13 +28,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
     final theme = Theme.of(context);
     final statsProvider = context.watch<StatisticsProvider>();
     final categoryProvider = context.watch<CategoryProvider>();
+    final statusColors =
+        theme.extension<AppStatusColors>() ?? AppStatusColors.light;
 
     final data = statsProvider.data;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Statistics'),
-      ),
+      appBar: AppBar(title: const Text('Statistics')),
       body: statsProvider.isLoading || data == null
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
@@ -43,12 +45,22 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   // Time Range Segmented Toggle
                   SegmentedButton<StatsTimeRange>(
                     segments: const [
-                      ButtonSegment(value: StatsTimeRange.thisMonth, label: Text('This Month')),
-                      ButtonSegment(value: StatsTimeRange.thisYear, label: Text('This Year')),
-                      ButtonSegment(value: StatsTimeRange.allTime, label: Text('All Time')),
+                      ButtonSegment(
+                        value: StatsTimeRange.thisMonth,
+                        label: Text('This Month'),
+                      ),
+                      ButtonSegment(
+                        value: StatsTimeRange.thisYear,
+                        label: Text('This Year'),
+                      ),
+                      ButtonSegment(
+                        value: StatsTimeRange.allTime,
+                        label: Text('All Time'),
+                      ),
                     ],
                     selected: {statsProvider.timeRange},
-                    onSelectionChanged: (set) => statsProvider.setTimeRange(set.first),
+                    onSelectionChanged: (set) =>
+                        statsProvider.setTimeRange(set.first),
                   ),
                   const SizedBox(height: 16),
 
@@ -66,7 +78,7 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         title: 'Completed This Month',
                         value: '${data.completedThisMonth}',
                         icon: Icons.check_circle_outline,
-                        color: Colors.green,
+                        color: statusColors.completed,
                       ),
                       _buildMetricCard(
                         context,
@@ -77,17 +89,38 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                       ),
                       _buildMetricCard(
                         context,
+                        title: 'Overdue',
+                        value: '${data.overdueCount}',
+                        icon: Icons.event_busy_outlined,
+                        color: statusColors.overdue,
+                      ),
+                      _buildMetricCard(
+                        context,
+                        title: 'Upcoming',
+                        value: '${data.upcomingCount}',
+                        icon: Icons.upcoming,
+                        color: statusColors.upcoming,
+                      ),
+                      _buildMetricCard(
+                        context,
                         title: 'Current Streak',
-                        value: '${data.currentStreak} ${data.currentStreak == 1 ? 'day' : 'days'}',
+                        value:
+                            '${data.currentStreak} ${data.currentStreak == 1 ? 'day' : 'days'}',
                         icon: Icons.local_fire_department_outlined,
-                        color: Colors.orange,
+                        color: statusColors.today,
                       ),
                       _buildMetricCard(
                         context,
                         title: 'Most Used Category',
                         value: data.mostUsedCategory?.name ?? 'None',
-                        icon: data.mostUsedCategory != null ? Category.getIconData(data.mostUsedCategory!.iconKey) : Icons.category,
-                        color: data.mostUsedCategory != null ? Color(data.mostUsedCategory!.colorValue) : theme.colorScheme.outline,
+                        icon: data.mostUsedCategory != null
+                            ? Category.getIconData(
+                                data.mostUsedCategory!.iconKey,
+                              )
+                            : Icons.category,
+                        color: data.mostUsedCategory != null
+                            ? Color(data.mostUsedCategory!.colorValue)
+                            : theme.colorScheme.outline,
                       ),
                     ],
                   ),
@@ -96,7 +129,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   // 12-Week Completion Bar Chart Section
                   Text(
                     '12-Week Completion Activity',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Card(
@@ -110,18 +145,24 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               crossAxisAlignment: CrossAxisAlignment.end,
-                              children: data.weeklyCompletionHistory.map((item) {
-                                int maxVal = data.weeklyCompletionHistory.map((e) => e.count).fold(0, (a, b) => a > b ? a : b);
+                              children: data.weeklyCompletionHistory.map((
+                                item,
+                              ) {
+                                int maxVal = data.weeklyCompletionHistory
+                                    .map((e) => e.count)
+                                    .fold(0, (a, b) => a > b ? a : b);
                                 if (maxVal == 0) maxVal = 1;
 
-                                final heightPercent = (item.count / maxVal).clamp(0.05, 1.0);
+                                final heightPercent = (item.count / maxVal)
+                                    .clamp(0.05, 1.0);
 
                                 return Column(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
                                     Text(
                                       '${item.count}',
-                                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 10),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(fontSize: 10),
                                     ),
                                     const SizedBox(height: 4),
                                     Container(
@@ -135,7 +176,13 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                                     const SizedBox(height: 4),
                                     Text(
                                       DateFormat('d/M').format(item.date),
-                                      style: theme.textTheme.labelSmall?.copyWith(fontSize: 9, color: theme.colorScheme.onSurfaceVariant),
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            fontSize: 9,
+                                            color: theme
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                          ),
                                     ),
                                   ],
                                 );
@@ -151,7 +198,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                   // Category Breakdown Section
                   Text(
                     'Category Distribution',
-                    style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   if (data.categoryCounts.isEmpty)
@@ -160,7 +209,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Text(
                           'No completion data for the selected period.',
-                          style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     )
@@ -170,33 +221,56 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                         padding: const EdgeInsets.all(16.0),
                         child: Column(
                           children: data.categoryCounts.entries.map((entry) {
-                            final cat = categoryProvider.getCategoryById(entry.key) ?? Category.defaultCategory;
-                            final total = data.categoryCounts.values.fold(0, (a, b) => a + b);
-                            final percent = total > 0 ? (entry.value / total) : 0.0;
+                            final cat =
+                                categoryProvider.getCategoryById(entry.key) ??
+                                Category.defaultCategory;
+                            final total = data.categoryCounts.values.fold(
+                              0,
+                              (a, b) => a + b,
+                            );
+                            final percent = total > 0
+                                ? (entry.value / total)
+                                : 0.0;
 
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 6.0),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       Row(
                                         children: [
-                                          Icon(Category.getIconData(cat.iconKey), size: 16, color: Color(cat.colorValue)),
+                                          Icon(
+                                            Category.getIconData(cat.iconKey),
+                                            size: 16,
+                                            color: Color(cat.colorValue),
+                                          ),
                                           const SizedBox(width: 8),
-                                          Text(cat.name, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
+                                          Text(
+                                            cat.name,
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                          ),
                                         ],
                                       ),
-                                      Text('${entry.value} (${(percent * 100).toStringAsFixed(0)}%)'),
+                                      Text(
+                                        '${entry.value} (${(percent * 100).toStringAsFixed(0)}%)',
+                                      ),
                                     ],
                                   ),
                                   const SizedBox(height: 4),
                                   LinearProgressIndicator(
                                     value: percent,
                                     color: Color(cat.colorValue),
-                                    backgroundColor: Color(cat.colorValue).withValues(alpha: 0.15),
+                                    backgroundColor: Color(cat.colorValue)
+                                        .withValues(alpha: 0.15),
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                 ],
@@ -237,7 +311,9 @@ class _StatisticsScreenState extends State<StatisticsScreen> {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
               ],

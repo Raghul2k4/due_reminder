@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -13,6 +15,8 @@ import '../../../shared/empty_state_widget.dart';
 import '../../reminders/screens/add_edit_reminder_screen.dart';
 import '../../reminders/screens/reminder_detail_screen.dart';
 import '../../reminders/widgets/reminder_tile.dart';
+
+import '../../reminders/widgets/reminder_template_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(int index)? onNavigateToTab;
@@ -222,6 +226,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _showTemplateSheet(BuildContext context) async {
+    final template = await ReminderTemplateSheet.show(context);
+    if (template == null || !context.mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddEditReminderScreen(template: template),
+      ),
+    );
+  }
+
   void _showSnoozeDialog(BuildContext context, Reminder reminder) {
     showDialog(
       context: context,
@@ -333,7 +348,10 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -413,23 +431,50 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 76,
+        titleSpacing: 20,
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '${_getGreeting()} 👋',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+            Row(
+              children: [
+                Text(
+                  _getGreeting(),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Icon(
+                  Icons.waving_hand_rounded,
+                  size: 19,
+                  color: theme.colorScheme.tertiary,
+                ),
+              ],
             ),
+            const SizedBox(height: 3),
             Text(
               todayStr,
               style: theme.textTheme.labelMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
+                letterSpacing: 0.2,
               ),
             ),
           ],
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: IconButton.filledTonal(
+              tooltip: 'Search reminders',
+              onPressed: () => widget.onNavigateToTab?.call(2),
+              icon: const Icon(Icons.search_rounded),
+              style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+            ),
+          ),
+        ],
       ),
       body: RefreshIndicator(
         onRefresh: () => reminderProvider.loadReminders(),
@@ -631,10 +676,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showQuickAddBottomSheet(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Reminder'),
+      floatingActionButton: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          FloatingActionButton.small(
+            heroTag: 'templates_fab',
+            tooltip: 'Start from a template',
+            onPressed: () => _showTemplateSheet(context),
+            child: const Icon(Icons.auto_awesome_outlined),
+          ),
+          const SizedBox(height: 12),
+          FloatingActionButton.extended(
+            heroTag: 'quickadd_fab',
+            onPressed: () => _showQuickAddBottomSheet(context),
+            icon: const Icon(Icons.add),
+            label: const Text('Add Reminder'),
+          ),
+        ],
       ),
     );
   }
@@ -648,33 +707,56 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final theme = Theme.of(context);
     return Expanded(
-      child: Card(
-        color: theme.colorScheme.surfaceContainerHigh,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              vertical: 12.0,
-              horizontal: 8.0,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Material(
+            color: theme.colorScheme.surfaceContainerHigh.withValues(
+              alpha: 0.72,
             ),
-            child: Column(
-              children: [
-                Text(
-                  count.toString(),
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: color,
+            child: InkWell(
+              onTap: onTap,
+              borderRadius: BorderRadius.circular(18),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 86),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 8,
+                ),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.42,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      count.toString(),
+                      style: theme.textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: color,
+                        height: 1.05,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/theme/app_colors.dart';
 import '../../../app/theme/finance_theme.dart';
 import '../../../app/providers/subscription_provider.dart';
@@ -37,9 +38,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   void _openAdd() {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const AddEditSubscriptionScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const AddEditSubscriptionScreen()),
     );
   }
 
@@ -67,26 +66,26 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     if (confirmed != true || !context.mounted) return;
     await context.read<SubscriptionProvider>().deleteSubscription(sub.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${sub.name} deleted')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('${sub.name} deleted')));
   }
 
-  Future<void> _togglePauseResume(BuildContext context, Subscription sub) async {
+  Future<void> _togglePauseResume(
+    BuildContext context,
+    Subscription sub,
+  ) async {
     final provider = context.read<SubscriptionProvider>();
     if (sub.status == SubscriptionStatus.active) {
       await provider.setStatus(sub.id, SubscriptionStatus.paused);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${sub.name} paused')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('${sub.name} paused')));
       }
     } else {
       await provider.setStatus(sub.id, SubscriptionStatus.active);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${sub.name} resumed')),
-        );
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('${sub.name} resumed')));
       }
     }
   }
@@ -94,9 +93,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Future<void> _markRenewed(BuildContext context, Subscription sub) async {
     await context.read<SubscriptionProvider>().markRenewed(sub.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('${sub.name} marked as renewed')),
-    );
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('${sub.name} marked as renewed')));
   }
 
   String _formatMoney(double amount, String currency) {
@@ -153,19 +151,27 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Color _statusColor(BuildContext context, Subscription sub) {
-    final statusColors = Theme.of(context).extension<AppStatusColors>() ?? AppStatusColors.light;
-    if (sub.status == SubscriptionStatus.paused) return statusColors.snoozed;
-    if (sub.status == SubscriptionStatus.cancelled) return statusColors.completed;
+    final statusColors =
+        Theme.of(context).extension<AppStatusColors>() ?? AppStatusColors.light;
+    if (sub.status == SubscriptionStatus.paused) {
+      return statusColors.snoozed;
+    }
+    if (sub.status == SubscriptionStatus.cancelled) {
+      return statusColors.completed;
+    }
 
     final now = DateTime.now();
     final days = sub.nextRenewalDate
         .difference(DateTime(now.year, now.month, now.day))
         .inDays;
-    if (days < 0) return statusColors.overdue;
-    if (days <= 7) return statusColors.today;
+    if (days < 0) {
+      return statusColors.overdue;
+    }
+    if (days <= 7) {
+      return statusColors.today;
+    }
     return statusColors.upcoming;
   }
-
 
   Widget _buildSubscriptionCard(BuildContext context, Subscription sub) {
     final theme = Theme.of(context);
@@ -238,7 +244,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
-                            isActive ? sub.nextRenewalDate.toRelativeString() : sub.status.displayName,
+                            isActive
+                                ? sub.nextRenewalDate.toRelativeString()
+                                : sub.status.displayName,
                             style: theme.textTheme.bodySmall?.copyWith(
                               color: statusColor,
                               fontWeight: FontWeight.bold,
@@ -248,7 +256,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         if (!isActive) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: statusColor.withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(12),
@@ -264,7 +275,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                         ],
                         if (isActive && sub.reminderEnabled) ...[
                           const SizedBox(width: 8),
-                          Icon(Icons.notifications_active, size: 14, color: theme.colorScheme.primary),
+                          Icon(
+                            Icons.notifications_active,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
                         ],
                       ],
                     ),
@@ -329,7 +344,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   size: 20,
                 ),
                 const SizedBox(width: 12),
-                Text(sub.status == SubscriptionStatus.active ? 'Pause' : 'Resume'),
+                Text(
+                  sub.status == SubscriptionStatus.active ? 'Pause' : 'Resume',
+                ),
               ],
             ),
           ),
@@ -343,13 +360,20 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               ],
             ),
           ),
-          const PopupMenuItem(
+          PopupMenuItem(
             value: 'delete',
             child: Row(
               children: [
-                Icon(Icons.delete_outline, size: 20, color: Colors.red),
-                SizedBox(width: 12),
-                Text('Delete', style: TextStyle(color: Colors.red)),
+                Icon(
+                  Icons.delete_outline,
+                  size: 20,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Delete',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
               ],
             ),
           ),
@@ -357,7 +381,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -386,9 +409,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                     ? Icons.visibility_off_outlined
                     : Icons.visibility_outlined,
               ),
-              tooltip: _showPausedAndCancelled ? 'Hide inactive' : 'Show inactive',
+              tooltip: _showPausedAndCancelled
+                  ? 'Hide inactive'
+                  : 'Show inactive',
               onPressed: () {
-                setState(() => _showPausedAndCancelled = !_showPausedAndCancelled);
+                setState(
+                  () => _showPausedAndCancelled = !_showPausedAndCancelled,
+                );
               },
             ),
         ],
@@ -400,89 +427,94 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               body: 'Track recurring expenses like streaming, gym, and bills, and get reminded before they renew.',
             )
           : RefreshIndicator(
-                  onRefresh: provider.loadSubscriptions,
-                  child: ListView(
-                    padding: const EdgeInsets.only(bottom: 96),
-                    children: [
-                      // Spending summary (active only, §2)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-                        child: Row(
-                          children: [
-                            _buildSummaryCard(
-                              context,
-                              label: 'Est. monthly',
-                              amount: provider.totalMonthlySpending,
-                              currency: currency,
-                              icon: Icons.calendar_view_month,
-                              color: theme.colorScheme.primary,
-                            ),
-                            const SizedBox(width: 12),
-                            _buildSummaryCard(
-                              context,
-                              label: 'Est. yearly',
-                              amount: provider.totalYearlySpending,
-                              currency: currency,
-                              icon: Icons.calendar_today,
-                              color: theme.colorScheme.tertiary,
-                            ),
-                          ],
+              onRefresh: provider.loadSubscriptions,
+              child: ListView(
+                padding: const EdgeInsets.only(bottom: 96),
+                children: [
+                  // Spending summary (active only, §2)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Row(
+                      children: [
+                        _buildSummaryCard(
+                          context,
+                          label: 'Est. monthly',
+                          amount: provider.totalMonthlySpending,
+                          currency: currency,
+                          icon: Icons.calendar_view_month,
+                          color: theme.colorScheme.primary,
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Text(
-                          'Based on $activeCount active ${activeCount == 1 ? 'subscription' : 'subscriptions'} in $currency.',
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
-
-
-                      // Upcoming renewals
-                      if (upcoming.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                          child: Row(
-                            children: [
-                              Icon(Icons.upcoming, size: 18, color: theme.colorScheme.primary),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Upcoming renewals',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        ...upcoming.map((s) => _buildSubscriptionCard(context, s)),
-                      ] else ...[
-                        const SizedBox(height: 16),
-                        EmptyStateWidget(
-                          icon: Icons.event_available,
-                          headline: 'No upcoming renewals.',
-                          body: 'Nothing is set to renew soon.',
+                        const SizedBox(width: 12),
+                        _buildSummaryCard(
+                          context,
+                          label: 'Est. yearly',
+                          amount: provider.totalYearlySpending,
+                          currency: currency,
+                          icon: Icons.calendar_today,
+                          color: theme.colorScheme.tertiary,
                         ),
                       ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                    child: Text(
+                      'Based on $activeCount active ${activeCount == 1 ? 'subscription' : 'subscriptions'} in $currency.',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
 
-                      // Inactive subscriptions
-                      if (_showPausedAndCancelled && inactiveList.isNotEmpty) ...[
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                          child: Text(
-                            'Paused & cancelled',
+                  // Upcoming renewals
+                  if (upcoming.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.upcoming,
+                            size: 18,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Upcoming renewals',
                             style: theme.textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                    ...upcoming.map((s) => _buildSubscriptionCard(context, s)),
+                  ] else ...[
+                    const SizedBox(height: 16),
+                    EmptyStateWidget(
+                      icon: Icons.event_available,
+                      headline: 'No upcoming renewals.',
+                      body: 'Nothing is set to renew soon.',
+                    ),
+                  ],
+
+                  // Inactive subscriptions
+                  if (_showPausedAndCancelled && inactiveList.isNotEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                      child: Text(
+                        'Paused & cancelled',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
                         ),
-                        ...inactiveList.map((s) => _buildSubscriptionCard(context, s)),
-                      ],
-                    ],
-                  ),
-                ),
+                      ),
+                    ),
+                    ...inactiveList.map(
+                      (s) => _buildSubscriptionCard(context, s),
+                    ),
+                  ],
+                ],
+              ),
+            ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openAdd,
         icon: const Icon(Icons.add),
@@ -491,4 +523,3 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 }
-

@@ -392,6 +392,17 @@ class ReminderRepository {
     return result.map((m) => Reminder.fromMap(m)).toList();
   }
 
+  Future<List<Reminder>> getTrash() async {
+    final db = await _dbProvider.database;
+    final result = await db.query(
+      'reminders',
+      where: 'is_deleted = 1',
+      orderBy: 'next_due_date DESC',
+      limit: 100,
+    );
+    return result.map((m) => Reminder.fromMap(m)).toList();
+  }
+
   /// Counts for Home screen tabs
   Future<({int overdue, int today, int upcoming, int total})> getCounts({required DateTime now}) async {
     final db = await _dbProvider.database;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/providers/subscription_provider.dart';
 import '../../../core/utils/subscription_recurrence.dart';
 import '../../../data/models/subscription.dart';
@@ -17,7 +18,8 @@ class AddEditSubscriptionScreen extends StatefulWidget {
   const AddEditSubscriptionScreen({super.key, this.subscription});
 
   @override
-  State<AddEditSubscriptionScreen> createState() => _AddEditSubscriptionScreenState();
+  State<AddEditSubscriptionScreen> createState() =>
+      _AddEditSubscriptionScreenState();
 }
 
 class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
@@ -26,7 +28,15 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
   final _priceController = TextEditingController();
   final _notesController = TextEditingController();
 
-  static const List<String> _currencies = ['USD', 'EUR', 'GBP', 'INR', 'JPY', 'AUD', 'CAD'];
+  static const List<String> _currencies = [
+    'USD',
+    'EUR',
+    'GBP',
+    'INR',
+    'JPY',
+    'AUD',
+    'CAD',
+  ];
 
   // Selected predefined service, or null when a custom ("Other") name is used.
   SubscriptionBrand? _selectedBrand;
@@ -61,7 +71,11 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       _currency = 'USD';
       _billingCycle = BillingCycle.monthly;
       final now = DateTime.now();
-      _nextRenewalDate = DateTime(now.year, now.month, now.day).add(const Duration(days: 30));
+      _nextRenewalDate = DateTime(
+        now.year,
+        now.month,
+        now.day,
+      ).add(const Duration(days: 30));
       _reminderEnabled = true;
       _reminderLead = SubscriptionReminderLead.oneDay;
       _status = SubscriptionStatus.active;
@@ -92,7 +106,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Discard unsaved changes?'),
-        content: const Text('You have unsaved changes. Are you sure you want to discard them?'),
+        content: const Text(
+          'You have unsaved changes. Are you sure you want to discard them?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -100,7 +116,10 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             child: const Text('Discard'),
           ),
         ],
@@ -162,7 +181,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
 
     if (!nameValid) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please choose or enter a subscription name.')),
+        const SnackBar(
+          content: Text('Please choose or enter a subscription name.'),
+        ),
       );
       return;
     }
@@ -216,7 +237,6 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -286,7 +306,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                 onPressed: _save,
                 icon: const Icon(Icons.check),
                 label: Text(_isEdit ? 'Save changes' : 'Add subscription'),
-                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
               ),
             ],
           ),
@@ -294,7 +316,6 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
       ),
     );
   }
-
 
   /// Service picker field. When a predefined service is selected it shows its
   /// logo and name (read-only, tap to change). On the custom path it reveals an
@@ -308,7 +329,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
         Text('Service', style: theme.textTheme.titleSmall),
         const SizedBox(height: 8),
         AnimatedSwitcher(
-          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 200),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeOutCubic,
           transitionBuilder: (child, animation) {
@@ -332,7 +355,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHigh,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -342,17 +367,28 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(_selectedBrand!.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
+                              Text(
+                                _selectedBrand!.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                               const SizedBox(height: 2),
-                              Text(_selectedBrand!.category,
-                                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                              Text(
+                                _selectedBrand!.category,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
                             ],
                           ),
                         ),
-                        TextButton(onPressed: _openPicker, child: const Text('Change')),
+                        TextButton(
+                          onPressed: _openPicker,
+                          child: const Text('Change'),
+                        ),
                       ],
                     ),
                   ),
@@ -371,7 +407,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                       tooltip: 'Pick from list',
                       onPressed: _openPicker,
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   maxLength: 100,
                   textInputAction: TextInputAction.next,
@@ -395,13 +433,16 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
           child: TextButton.icon(
             onPressed: _openPicker,
             icon: const Icon(Icons.search, size: 18),
-            label: Text(_selectedBrand != null ? 'Choose a different service' : 'Pick a known service'),
+            label: Text(
+              _selectedBrand != null
+                  ? 'Choose a different service'
+                  : 'Pick a known service',
+            ),
           ),
         ),
       ],
     );
   }
-
 
   /// Price + currency, aligned to equal heights with consistent radii (§3).
   Widget _buildPriceRow(ThemeData theme) {
@@ -419,7 +460,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                 hintText: '0.00',
                 prefixIcon: Icon(Icons.payments_outlined),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
               inputFormatters: [
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
               ],
@@ -523,7 +566,10 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     style: theme.textTheme.bodyLarge,
                   ),
                 ),
-                Icon(Icons.chevron_right, color: theme.colorScheme.onSurfaceVariant),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ],
             ),
           ),
@@ -534,14 +580,20 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
           decoration: BoxDecoration(
             color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+            border: Border.all(
+              color: theme.colorScheme.primary.withValues(alpha: 0.5),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Icon(Icons.preview, size: 18, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.preview,
+                    size: 18,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     'Next renewals',
@@ -554,8 +606,12 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                previews.map((d) => DateFormat('d MMM yyyy').format(d)).join('  ·  '),
-                style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+                previews
+                    .map((d) => DateFormat('d MMM yyyy').format(d))
+                    .join('  ·  '),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
@@ -564,12 +620,16 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
     );
   }
 
-
   Widget _buildReminderSection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Reminder', style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
+        Text(
+          'Reminder',
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         const SizedBox(height: 4),
         SwitchListTile(
           contentPadding: EdgeInsets.zero,
@@ -584,7 +644,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
           },
         ),
         AnimatedSize(
-          duration: MediaQuery.of(context).disableAnimations ? Duration.zero : const Duration(milliseconds: 200),
+          duration: MediaQuery.of(context).disableAnimations
+              ? Duration.zero
+              : const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
           child: _reminderEnabled
@@ -600,7 +662,10 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
                     items: SubscriptionReminderLead.values.map((lead) {
                       return DropdownMenuItem(
                         value: lead,
-                        child: Text(lead.displayName, overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          lead.displayName,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       );
                     }).toList(),
                     onChanged: (val) {
@@ -629,7 +694,9 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
           children: SubscriptionStatus.values.map((status) {
             return Expanded(
               child: Padding(
-                padding: EdgeInsets.only(right: status == SubscriptionStatus.values.last ? 0 : 8),
+                padding: EdgeInsets.only(
+                  right: status == SubscriptionStatus.values.last ? 0 : 8,
+                ),
                 child: _StatusChip(
                   status: status,
                   selected: status == _status,
@@ -649,14 +716,17 @@ class _AddEditSubscriptionScreenState extends State<AddEditSubscriptionScreen> {
   }
 }
 
-
 /// A single-line billing-cycle chip with an animated selected state (§3, §5).
 class _BillingCycleChip extends StatelessWidget {
   final BillingCycle cycle;
   final bool selected;
   final VoidCallback onTap;
 
-  const _BillingCycleChip({required this.cycle, required this.selected, required this.onTap});
+  const _BillingCycleChip({
+    required this.cycle,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -669,16 +739,22 @@ class _BillingCycleChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           height: 48,
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: selected ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHigh,
+            color: selected
+                ? theme.colorScheme.primaryContainer
+                : theme.colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -689,7 +765,9 @@ class _BillingCycleChip extends StatelessWidget {
               maxLines: 1,
               textAlign: TextAlign.center,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: selected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                color: selected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -706,7 +784,11 @@ class _StatusChip extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
 
-  const _StatusChip({required this.status, required this.selected, required this.onTap});
+  const _StatusChip({
+    required this.status,
+    required this.selected,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -719,16 +801,22 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: AnimatedContainer(
-          duration: reduceMotion ? Duration.zero : const Duration(milliseconds: 180),
+          duration: reduceMotion
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
           height: 48,
           alignment: Alignment.center,
           padding: const EdgeInsets.symmetric(horizontal: 4),
           decoration: BoxDecoration(
-            color: selected ? theme.colorScheme.primaryContainer : theme.colorScheme.surfaceContainerHigh,
+            color: selected
+                ? theme.colorScheme.primaryContainer
+                : theme.colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+              color: selected
+                  ? theme.colorScheme.primary
+                  : theme.colorScheme.outlineVariant,
               width: selected ? 1.5 : 1,
             ),
           ),
@@ -739,7 +827,9 @@ class _StatusChip extends StatelessWidget {
               maxLines: 1,
               textAlign: TextAlign.center,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: selected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                color: selected
+                    ? theme.colorScheme.onPrimaryContainer
+                    : theme.colorScheme.onSurfaceVariant,
                 fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -749,4 +839,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../../../app/providers/category_provider.dart';
 import '../../../data/models/category.dart';
 
@@ -70,7 +71,10 @@ class CategoriesScreen extends StatelessWidget {
                       maxLength: 50,
                     ),
                     const SizedBox(height: 12),
-                    Text('Choose Icon', style: Theme.of(ctx).textTheme.titleSmall),
+                    Text(
+                      'Choose Icon',
+                      style: Theme.of(ctx).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -78,22 +82,36 @@ class CategoriesScreen extends StatelessWidget {
                       children: availableIcons.map((iconKey) {
                         final isSelected = iconKey == selectedIconKey;
                         return InkWell(
-                          onTap: () => setDialogState(() => selectedIconKey = iconKey),
+                          onTap: () =>
+                              setDialogState(() => selectedIconKey = iconKey),
                           borderRadius: BorderRadius.circular(8),
                           child: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: isSelected ? Theme.of(ctx).colorScheme.primaryContainer : null,
-                              border: isSelected ? Border.all(color: Theme.of(ctx).colorScheme.primary, width: 2) : null,
+                              color: isSelected
+                                  ? Theme.of(ctx).colorScheme.primaryContainer
+                                  : null,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: Theme.of(ctx).colorScheme.primary,
+                                      width: 2,
+                                    )
+                                  : null,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(Category.getIconData(iconKey), size: 24),
+                            child: Icon(
+                              Category.getIconData(iconKey),
+                              size: 24,
+                            ),
                           ),
                         );
                       }).toList(),
                     ),
                     const SizedBox(height: 16),
-                    Text('Choose Color', style: Theme.of(ctx).textTheme.titleSmall),
+                    Text(
+                      'Choose Color',
+                      style: Theme.of(ctx).textTheme.titleSmall,
+                    ),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
@@ -101,7 +119,9 @@ class CategoriesScreen extends StatelessWidget {
                       children: availableColors.map((colorVal) {
                         final isSelected = colorVal == selectedColorValue;
                         return InkWell(
-                          onTap: () => setDialogState(() => selectedColorValue = colorVal),
+                          onTap: () => setDialogState(
+                            () => selectedColorValue = colorVal,
+                          ),
                           customBorder: const CircleBorder(),
                           child: Container(
                             width: 32,
@@ -109,7 +129,12 @@ class CategoriesScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Color(colorVal),
                               shape: BoxShape.circle,
-                              border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
+                              border: isSelected
+                                  ? Border.all(
+                                      color: Theme.of(ctx).colorScheme.surface,
+                                      width: 3,
+                                    )
+                                  : null,
                             ),
                           ),
                         );
@@ -147,9 +172,9 @@ class CategoriesScreen extends StatelessWidget {
                       if (context.mounted) Navigator.pop(dialogCtx);
                     } catch (e) {
                       if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(e.toString())),
-                        );
+                        ScaffoldMessenger.of(
+                          context,
+                        ).showSnackBar(SnackBar(content: Text(e.toString())));
                       }
                     }
                   },
@@ -164,15 +189,18 @@ class CategoriesScreen extends StatelessWidget {
   }
 
   void _handleDeleteCategory(BuildContext context, Category category) {
-    final count = context.read<CategoryProvider>().categoryCounts[category.id] ?? 0;
+    final count =
+        context.read<CategoryProvider>().categoryCounts[category.id] ?? 0;
 
     showDialog(
       context: context,
       builder: (dialogCtx) => AlertDialog(
         title: Text('Delete "${category.name}"?'),
-        content: Text(count > 0
-            ? 'This category has $count active reminders. Deleting it will reassign these reminders to "Other".'
-            : 'Are you sure you want to delete this category?'),
+        content: Text(
+          count > 0
+              ? 'This category has $count active reminders. Deleting it will reassign these reminders to "Other".'
+              : 'Are you sure you want to delete this category?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogCtx),
@@ -182,16 +210,21 @@ class CategoriesScreen extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(dialogCtx);
               try {
-                await context.read<CategoryProvider>().deleteCategory(category.id, reassignToOther: true);
+                await context.read<CategoryProvider>().deleteCategory(
+                  category.id,
+                  reassignToOther: true,
+                );
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString())),
-                  );
+                  ScaffoldMessenger.of(context)
+                      .showSnackBar(SnackBar(content: Text(e.toString())));
                 }
               }
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -205,9 +238,7 @@ class CategoriesScreen extends StatelessWidget {
     final categoryProvider = context.watch<CategoryProvider>();
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Categories'),
-      ),
+      appBar: AppBar(title: const Text('Categories')),
       body: categoryProvider.isLoading
           ? const Center(child: CircularProgressIndicator())
           : ListView.builder(
@@ -237,30 +268,43 @@ class CategoriesScreen extends StatelessWidget {
                   ),
                   subtitle: Text(
                     cat.isCustom ? 'Custom category' : 'Built-in category',
-                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                    style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                   trailing: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Text(
                           '$count',
-                          style: theme.textTheme.labelMedium?.copyWith(fontWeight: FontWeight.bold),
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                       if (cat.isCustom) ...[
                         IconButton(
                           icon: const Icon(Icons.edit_outlined),
                           tooltip: 'Edit category',
-                          onPressed: () => _showAddEditCategoryDialog(context, category: cat),
+                          onPressed: () => _showAddEditCategoryDialog(
+                            context,
+                            category: cat,
+                          ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          icon: Icon(
+                            Icons.delete_outline,
+                            color: theme.colorScheme.error,
+                          ),
                           tooltip: 'Delete category',
                           onPressed: () => _handleDeleteCategory(context, cat),
                         ),

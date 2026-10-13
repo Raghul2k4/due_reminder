@@ -165,7 +165,10 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(ctx).colorScheme.error,
+              foregroundColor: Theme.of(ctx).colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -238,7 +241,7 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
           IconButton(
             icon: Icon(
               reminder.isFavorite ? Icons.star : Icons.star_border,
-              color: reminder.isFavorite ? Colors.amber : null,
+              color: reminder.isFavorite ? theme.colorScheme.tertiary : null,
             ),
             tooltip: reminder.isFavorite ? 'Unstar' : 'Star',
             onPressed: () => reminderProvider.toggleFavorite(reminder.id),
@@ -415,7 +418,9 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
                   return ListTile(
                     leading: Icon(
                       rec.wasLate ? Icons.warning_amber : Icons.check_circle,
-                      color: rec.wasLate ? statusColors.overdue : Colors.green,
+                      color: rec.wasLate
+                          ? statusColors.overdue
+                          : statusColors.completed,
                     ),
                     title: Text(rec.completedAt.toFullDateTimeString()),
                     subtitle: Text(
@@ -428,7 +433,9 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
                       ),
                       decoration: BoxDecoration(
                         color:
-                            (rec.wasLate ? statusColors.overdue : Colors.green)
+                            (rec.wasLate
+                                    ? statusColors.overdue
+                                    : statusColors.completed)
                                 .withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -437,7 +444,7 @@ class _ReminderDetailScreenState extends State<ReminderDetailScreen> {
                         style: theme.textTheme.labelSmall?.copyWith(
                           color: rec.wasLate
                               ? statusColors.overdue
-                              : Colors.green,
+                              : statusColors.completed,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

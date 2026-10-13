@@ -12,8 +12,12 @@ void main() {
       debugPrint('Uncaught Flutter Error: ${details.exceptionAsString()}');
     };
 
-    // Initialize notification service & timezone
-    await NotificationService().initialize();
+    // Initialize notification service & timezone before runApp.
+    final notifications = NotificationService();
+    await notifications.initialize(
+      onSelectNotification: handleNotificationTap,
+      onSelectNotificationAction: handleNotificationAction,
+    );
 
     runApp(const LifeReminderApp());
   }, (error, stackTrace) {

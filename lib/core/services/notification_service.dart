@@ -14,13 +14,42 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin _notificationsPlugin = FlutterLocalNotificationsPlugin();
   bool _isInitialized = false;
 
-  Future<void> initialize({Function(String? payload)? onSelectNotification}) async {
+  Future<void> initialize({
+    Function(String? payload)? onSelectNotification,
+    Function(String? payload, String? actionId)? onSelectNotificationAction,
+  }) async {
     if (_isInitialized) return;
 
     tz.initializeTimeZones();
-    final String timeZoneName = DateTime.now().timeZoneName;
+    // DateTime.now().timeZoneName returns an abbreviation (IST/EST) on
+    // Android, not an IANA name. Try common IANA guesses first, then fall
+    // back to UTC rather than crashing scheduling.
     try {
-      tz.setLocalLocation(tz.getLocation(timeZoneName));
+      const candidates = [
+        'Asia/Kolkata',
+        'Asia/Dubai',
+        'America/New_York',
+        'America/Chicago',
+        'America/Los_Angeles',
+        'Europe/London',
+        'Europe/Paris',
+        'Australia/Sydney',
+      ];
+      final offset = DateTime.now().timeZoneOffset;
+      tz.Location? match;
+      for (final name in candidates) {
+        try {
+          final loc = tz.getLocation(name);
+          final probe = tz.TZDateTime.now(loc);
+          if (probe.timeZoneOffset == offset) {
+            match = loc;
+            break;
+          }
+        } catch (_) {
+          continue;
+        }
+      }
+      tz.setLocalLocation(match ?? tz.getLocation('UTC'));
     } catch (_) {
       tz.setLocalLocation(tz.getLocation('UTC'));
     }
@@ -36,6 +65,12 @@ class NotificationService {
     await _notificationsPlugin.initialize(
       settings: initSettings,
       onDidReceiveNotificationResponse: (response) {
+        if (response.actionId != null && response.actionId!.isNotEmpty) {
+          if (onSelectNotificationAction != null) {
+            onSelectNotificationAction(response.payload, response.actionId);
+          }
+          return;
+        }
         if (onSelectNotification != null) {
           onSelectNotification(response.payload);
         }
@@ -121,7 +156,7 @@ class NotificationService {
         scheduledDate: tzScheduledDate,
         notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        payload: reminder.id,
+        payload: 'reminder:${reminder.id}',
       );
     } catch (e) {
       try {
@@ -132,7 +167,7 @@ class NotificationService {
           scheduledDate: tzScheduledDate,
           notificationDetails: details,
           androidScheduleMode: AndroidScheduleMode.inexact,
-          payload: reminder.id,
+          payload: 'reminder:${reminder.id}',
         );
       } catch (err) {
         debugPrint('Failed to schedule notification: $err');

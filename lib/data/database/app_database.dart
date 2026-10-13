@@ -5,7 +5,7 @@ import '../models/category.dart';
 
 class AppDatabase {
   static const String _dbName = 'life_reminder.db';
-  static const int _dbVersion = 2;
+  static const int _dbVersion = 3;
 
   static AppDatabase? _instance;
   Database? _db;
@@ -69,6 +69,8 @@ class AppDatabase {
         description         TEXT,
         category_id         TEXT NOT NULL REFERENCES categories(id),
         priority            TEXT NOT NULL,
+        amount              REAL,
+        currency            TEXT,
         created_at          INTEGER NOT NULL,
         start_date          INTEGER NOT NULL,
         due_date            INTEGER NOT NULL,
@@ -138,6 +140,13 @@ class AppDatabase {
     // v2: Subscription Reminder Manager. Additive table only, no data loss.
     if (oldVersion < 2) {
       await _createSubscriptionsTable(db);
+    }
+    // v3: optional bill amount on reminders. Additive columns only.
+    if (oldVersion < 3) {
+      await db.execute('ALTER TABLE reminders ADD COLUMN amount REAL;');
+      await db.execute(
+        "ALTER TABLE reminders ADD COLUMN currency TEXT DEFAULT 'USD';",
+      );
     }
   }
 

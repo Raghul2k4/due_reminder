@@ -178,19 +178,19 @@ class AppStatusColors extends ThemeExtension<AppStatusColors> {
   });
 
   static const light = AppStatusColors(
-    overdue: Color(0xFFD32F2F),
-    today: Color(0xFFED6C02),
-    upcoming: Color(0xFF0288D1),
-    completed: Color(0xFF757575),
-    snoozed: Color(0xFF9C27B0),
+    overdue: Color(0xFFC53D4B),
+    today: Color(0xFF946200),
+    upcoming: Color(0xFF245FC7),
+    completed: Color(0xFF69778D),
+    snoozed: Color(0xFF946200),
   );
 
   static const dark = AppStatusColors(
-    overdue: Color(0xFFEF5350),
-    today: Color(0xFFFF9800),
-    upcoming: Color(0xFF29B6F6),
-    completed: Color(0xFFB0BEC5),
-    snoozed: Color(0xFFAB47BC),
+    overdue: Color(0xFFF16C76),
+    today: Color(0xFFF0B85A),
+    upcoming: Color(0xFF79B5FF),
+    completed: Color(0xFF7F8DA5),
+    snoozed: Color(0xFFF0B85A),
   );
 
   @override
